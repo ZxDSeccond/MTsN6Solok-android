@@ -25,9 +25,6 @@ jobs:
         run: |
           set -euxo pipefail
 
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls -la "$ANDROID_HOME" || true
-
           mkdir -p "$ANDROID_HOME/cmdline-tools"
           if [ ! -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
             wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip
@@ -56,20 +53,23 @@ jobs:
           mkdir -p extracted
           unzip -q "$ZIP_FILE" -d extracted
 
-          echo "=== cari gradlew ==="
-          find extracted -name gradlew -print
+          echo "=== struktur hasil extract ==="
+          find extracted -maxdepth 3 -print | head -200
 
       - name: Build debug APK
         shell: bash
         run: |
           set -euxo pipefail
 
-          PROJECT_DIR=$(find extracted -name gradlew -print -quit | xargs -r dirname)
-          if [ -z "$PROJECT_DIR" ] || [ ! -f "$PROJECT_DIR/gradlew" ]; then
-            echo "ERROR: gradlew tidak ditemukan di ZIP yang diextract"
+          GRADLEW_PATH=$(find extracted -name gradlew -print -quit)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "ERROR: gradlew tidak ditemukan di hasil extract"
+            echo "cek isi folder extracted:"
+            find extracted -maxdepth 3 -print
             exit 1
           fi
 
+          PROJECT_DIR=$(dirname "$GRADLEW_PATH")
           echo "Project dir: $PROJECT_DIR"
           cd "$PROJECT_DIR"
           chmod +x gradlew
