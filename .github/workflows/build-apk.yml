@@ -42,6 +42,17 @@ jobs:
             "build-tools;34.0.0" \
             "cmdline-tools;latest"
 
+      - name: Install Gradle 8.5 manually
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip -O /tmp/gradle-8.5-bin.zip
+          sudo rm -rf /opt/gradle-8.5
+          sudo unzip -q /tmp/gradle-8.5-bin.zip -d /opt
+          sudo ln -sfn /opt/gradle-8.5 /usr/local/gradle
+          echo "/usr/local/gradle/bin" >> "$GITHUB_PATH"
+
       - name: Extract project ZIP
         shell: bash
         run: |
@@ -61,7 +72,7 @@ jobs:
           echo "=== Struktur hasil extract ==="
           find extracted -maxdepth 6 -print
 
-      - name: Find Android project root and build with wrapper
+      - name: Generate wrapper and build APK
         shell: bash
         run: |
           set -euxo pipefail
@@ -69,24 +80,23 @@ jobs:
           PROJECT_DIR=$(find extracted -name settings.gradle -print -quit | xargs -r dirname)
 
           if [ -z "$PROJECT_DIR" ]; then
-            echo "settings.gradle tidak ditemukan di hasil extract"
+            echo "settings.gradle tidak ditemukan"
             find extracted -maxdepth 6 -print
             exit 1
           fi
 
-          echo "Project dir: $PROJECT_DIR"
           cd "$PROJECT_DIR"
 
-          echo "=== Versi Gradle sebelum wrapper ==="
-          gradle -v || true
+          echo "Project dir: $PROJECT_DIR"
+
+          gradle -v
 
           if [ ! -f gradlew ]; then
-            echo "gradlew tidak ada, generate wrapper..."
+            echo "Generate wrapper using Gradle 8.5..."
             gradle wrapper --gradle-version 8.5
           fi
 
           chmod +x gradlew
-          ./gradlew --version
           ./gradlew --no-daemon clean assembleDebug
 
       - name: Upload APK artifact
