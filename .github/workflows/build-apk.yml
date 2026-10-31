@@ -20,28 +20,23 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        env:
-          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-          ANDROID_HOME: /usr/local/lib/android/sdk
-        run: |
-          mkdir -p /usr/local/lib/android/sdk
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip
-          unzip -q /tmp/cmdline-tools.zip -d /tmp/android-sdk
-          mkdir -p /usr/local/lib/android/sdk/cmdline-tools
-          mv /tmp/android-sdk/cmdline-tools /usr/local/lib/android/sdk/cmdline-tools/latest
-          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses
-          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Extract project ZIP
         run: |
           ls -la
           unzip -q "CBT-MTsN6-Solok-Android-Project.zip" -d .
-          find . -maxdepth 6 -name gradlew
+          echo "=== cari gradlew ==="
+          find . -name gradlew -print
 
       - name: Build debug APK
         run: |
-          PROJECT_DIR=$(find . -maxdepth 6 -name gradlew -printf '%h\n' | head -n 1)
+          PROJECT_DIR=$(find . -name gradlew -printf '%h\n' | head -n 1)
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "ERROR: gradlew tidak ditemukan setelah extract zip"
+            exit 1
+          fi
           echo "Project dir: $PROJECT_DIR"
           cd "$PROJECT_DIR"
           chmod +x gradlew
