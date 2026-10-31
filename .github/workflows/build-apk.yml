@@ -48,6 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+
           ZIP_FILE="CBT-MTsN6-Solok-Android-Project.zip"
           if [ ! -f "$ZIP_FILE" ]; then
             echo "ZIP file not found"
@@ -58,17 +59,20 @@ jobs:
           mkdir -p extracted
           unzip -q "$ZIP_FILE" -d extracted
 
-          echo "=== struktur hasil extract ==="
-          find extracted -maxdepth 4 -print
+          echo "=== Struktur hasil extract ==="
+          find extracted -maxdepth 6 -print
 
-      - name: Generate gradlew if missing, then build APK
+      - name: Find Android project root and build
         shell: bash
         run: |
           set -euxo pipefail
 
-          PROJECT_DIR=$(find extracted -maxdepth 3 -name build.gradle -print -quit | xargs -r dirname)
+          PROJECT_DIR=$(find extracted -name settings.gradle -print -quit | xargs -r dirname)
+
           if [ -z "$PROJECT_DIR" ]; then
-            echo "build.gradle tidak ditemukan di hasil extract"
+            echo "settings.gradle tidak ditemukan di hasil extract"
+            echo "=== Tree project ==="
+            find extracted -maxdepth 6 -print
             exit 1
           fi
 
@@ -81,7 +85,7 @@ jobs:
           fi
 
           chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug
+          ./gradlew --no-daemon clean assembleDebug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
