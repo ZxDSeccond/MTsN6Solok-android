@@ -1,0 +1,45 @@
+name: Build APK from ZIP
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Extract project ZIP
+        run: |
+          ls -la
+          unzip -q CBT-MTsN6-Solok-Android-Project.zip -d .
+          find . -maxdepth 3 -name gradlew
+
+      - name: Build debug APK
+        run: |
+          PROJECT_DIR=$(find . -maxdepth 3 -name gradlew -printf '%h\n' | head -n 1)
+          echo "Project dir: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-from-zip
+          path: |
+            **/build/outputs/apk/debug/*.apk
