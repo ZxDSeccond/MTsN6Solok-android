@@ -42,7 +42,7 @@ jobs:
             "build-tools;34.0.0" \
             "cmdline-tools;latest"
 
-      - name: Install Gradle 8.5 manually
+      - name: Install Gradle 8.5
         shell: bash
         run: |
           set -euxo pipefail
@@ -70,29 +70,34 @@ jobs:
           unzip -q "$ZIP_FILE" -d extracted
 
           echo "=== Struktur hasil extract ==="
-          find extracted -maxdepth 6 -print
+          find extracted -maxdepth 8 -print
 
-      - name: Generate wrapper and build APK
+      - name: Find actual Android project root and build
         shell: bash
         run: |
           set -euxo pipefail
 
-          PROJECT_DIR=$(find extracted -name settings.gradle -print -quit | xargs -r dirname)
+          PROJECT_DIR=$(find extracted -type d -print0 | while IFS= read -r -d '' d; do
+            if [ -f "$d/settings.gradle" ] && [ -f "$d/app/build.gradle" ]; then
+              echo "$d"
+              break
+            fi
+          done)
 
           if [ -z "$PROJECT_DIR" ]; then
-            echo "settings.gradle tidak ditemukan"
-            find extracted -maxdepth 6 -print
+            echo "Tidak ditemukan root project Android yang valid di hasil extract"
+            echo "=== Tree penuh ==="
+            find extracted -maxdepth 8 -print
             exit 1
           fi
 
-          cd "$PROJECT_DIR"
-
           echo "Project dir: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
 
           gradle -v
 
           if [ ! -f gradlew ]; then
-            echo "Generate wrapper using Gradle 8.5..."
+            echo "Generate wrapper..."
             gradle wrapper --gradle-version 8.5
           fi
 
